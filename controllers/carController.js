@@ -1,22 +1,35 @@
 const Car = require('../models/Car');
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs-extra');
 
 // Configure multer for image uploads
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'uploads/');
+  destination: async (req, file, cb) => {
+    try {
+      const userId = req.user._id;
+      const uploadPath = path.join(__dirname, 'uploads', userId.toString());
+      await fs.ensureDir(uploadPath);
+      cb(null, uploadPath);
+    } catch (error) {
+      cb(error);
+    }
   },
   filename: (req, file, cb) => {
+    // Generate a unique filename with a timestamp
     cb(null, Date.now() + path.extname(file.originalname));
   }
 });
+
 
 const upload = multer({ storage });
 
 const createCar = async (req, res) => {
   const { title, description, tags } = req.body;
-  const images = req.files.map(file => file.path);
+  const images = req.files.map(file => {
+    return path.relative(__dirname, file.path);
+  });
+
   const newCar = new Car({
     title,
     description,
@@ -26,12 +39,15 @@ const createCar = async (req, res) => {
   });
 
   try {
+    // Save the new car to the database
     await newCar.save();
     res.status(201).json(newCar);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: 'Server error' });
   }
 };
+
 
 const getCars = async (req, res) => {
   try {
