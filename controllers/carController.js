@@ -81,9 +81,10 @@ const deleteCar = async (req, res) => {
     if (car.user.toString() !== req.user._id.toString())
       return res.status(401).json({ message: 'Not authorized' });
 
-    await car.remove();
+    await Car.deleteOne({ _id: req.params.id });
     res.json({ message: 'Car removed' });
   } catch (error) {
+    console.log(error);
     res.status(500).json({ message: 'Server error' });
   }
 };
